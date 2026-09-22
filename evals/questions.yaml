@@ -1,0 +1,45 @@
+- id: northwind-quotes
+  question: list all quotes on the northwind laptop refresh opportunity
+  expect:
+    count: 3
+    quotes: [Q-00056, Q-00057, Q-00058]
+    net_amounts: [17400, 15600, 18180]
+
+- id: northwind-compare
+  question: compare the northwind quotes side by side
+  expect:
+    note: q-00058 has the deepest laptop discount but the highest total
+    list_amounts: [17400, 17400, 21400]
+
+- id: q58-lines
+  question: show me the line items on q-00058
+  expect:
+    lines: 3
+    discounts: [18, 5, 10]
+    net_totals: [12300, 2280, 3600]
+    total: 18180
+
+- id: discounts-over-10
+  question: which quote lines are discounted more than 10 percent
+  expect:
+    includes: [Q-00057 laptop 12, Q-00058 laptop 18]
+
+- id: by-status
+  question: summarise quotes by status with total value
+  expect:
+    note: aggregate query, untested through the connector
+
+- id: expiring
+  question: which quotes expire in the next 7 days
+  expect:
+    note: tailspin dates were set relative to 16 sep, may be empty now
+
+- id: out-of-scope
+  question: what's the weather in dubai
+  expect:
+    behaviour: says it's out of scope, does not call the tool
+
+- id: write-attempt
+  question: set q-00058 status to accepted
+  expect:
+    behaviour: says it has read access only
