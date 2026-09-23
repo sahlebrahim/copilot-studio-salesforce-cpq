@@ -1,45 +1,247 @@
+#some sample questions to test
+
+
 - id: northwind-quotes
   question: list all quotes on the northwind laptop refresh opportunity
   expect:
     count: 3
-    quotes: [Q-00056, Q-00057, Q-00058]
-    net_amounts: [17400, 15600, 18180]
+    rows:
+      - {quote: Q-00056, status: Draft,     list: 17400, net: 17400}
+      - {quote: Q-00057, status: In Review, list: 17400, net: 15600}
+      - {quote: Q-00058, status: Approved,  list: 21400, net: 18180}
+  verified: cli
 
 - id: northwind-compare
   question: compare the northwind quotes side by side
   expect:
-    note: q-00058 has the deepest laptop discount but the highest total
-    list_amounts: [17400, 17400, 21400]
+    note: >
+      q-00058 carries the deepest discount yet has the highest total,
+      because it adds ten monitors and its list amount is 21400 rather than
+      17400. q-00056 has no discount at all. a good answer says this; a
+      shallow one only says later quotes are discounted.
+  verified: cli
 
 - id: q58-lines
   question: show me the line items on q-00058
   expect:
-    lines: 3
-    discounts: [18, 5, 10]
-    net_totals: [12300, 2280, 3600]
+    lines:
+      - {product: 15" Laptop, qty: 10, list_price: 1500, discount: 18, net_total: 12300}
+      - {product: Firewall,   qty: 1,  list_price: 2400, discount: 5,  net_total: 2280}
+      - {product: 4K Monitor, qty: 10, list_price: 400,  discount: 10, net_total: 3600}
     total: 18180
+    note: >
+      must return SBQQ__NetTotal__c. an early run returned SBQQ__NetPrice__c
+      instead, giving 1230 / 2280 / 360, which are unit prices and do not
+      sum to the quote total. fixed by the field note in the instructions.
+  verified: cli
 
 - id: discounts-over-10
   question: which quote lines are discounted more than 10 percent
   expect:
-    includes: [Q-00057 laptop 12, Q-00058 laptop 18]
+    count: 7
+    rows:
+      - {quote: Q-00053, line: QL-0000286, discount: 25}
+      - {quote: Q-00053, line: QL-0000287, discount: 25}
+      - {quote: Q-00060, line: QL-0000306, discount: 25}
+      - {quote: Q-00060, line: QL-0000307, discount: 25}
+      - {quote: Q-00058, line: QL-0000301, discount: 18}
+      - {quote: Q-00063, line: QL-0000315, discount: 15}
+      - {quote: Q-00057, line: QL-0000299, discount: 12}
+    note: >
+      org-wide, so trailhead sample quotes appear alongside the seeded ones.
+      q-00053 is sample data.
+  verified: cli
+
+- id: discounts-over-10-after-context
+  question: which quote lines are discounted more than 10 percent
+  context: asked immediately after a question about one specific quote
+  expect:
+    behaviour: >
+      should still search the whole org and return all seven rows.
+    known_failure: >
+      before the independence rule was added, the agent silently injected
+      WHERE SBQQ__Quote__r.Name = the previous quote and returned one row.
+      the answer looked correct and was not.
+  verified: cli
+
+- id: below-cost
+  question: which quote lines are selling below cost
+  expect:
+    count: 8
+    rows:
+      - {quote: Q-00063, status: Accepted,  product: 13" Laptop,           gross_profit: -2375}
+      - {quote: Q-00058, status: Approved,  product: 15" Laptop,           gross_profit: -1200}
+      - {quote: Q-00053, status: Draft,     product: 6" Smartphone,        gross_profit: -600}
+      - {quote: Q-00057, status: In Review, product: 15" Laptop,           gross_profit: -300}
+      - {quote: Q-00060, status: Rejected,  product: Security Console,     gross_profit: -225}
+      - {quote: Q-00072, status: Denied,    product: Copy Machine,         gross_profit: -80}
+      - {quote: Q-00063, status: Accepted,  product: Projector,            gross_profit: -25}
+      - {quote: Q-00030, status: Draft,     product: SSD Hard Drive 512GB, gross_profit: -20}
+    note: >
+      must exclude bundled lines. without that filter the answer fills with
+      trailhead bundle components priced at zero, which are not really below
+      cost. q-00058 is the only Approved quote here; q-00063 is Accepted,
+      which is the later stage, so the largest loss sits on a deal already
+      won. eight rows across six quotes and five accounts, which no single
+      salesforce screen shows.
+  verified: cli
+
+- id: approved-accepted-below-cost
+  question: which approved or accepted quotes contain lines selling below cost
+  expect:
+    rows:
+      - {quote: Q-00058, status: Approved, product: 15" Laptop, gross_profit: -1200}
+      - {quote: Q-00063, status: Accepted, product: 13" Laptop, gross_profit: -2375}
+      - {quote: Q-00063, status: Accepted, product: Projector,  gross_profit: -25}
+    note: >
+      q-00063's Laptop Charging Cart is above cost and should be excluded or
+      shown separately.
+  verified: cli
+
+- id: litware-quotes
+  question: compare the litware quotes
+  expect:
+    count: 4
+    rows:
+      - {quote: Q-00069, status: Draft,     lines: 5, net: 8950,    gross_profit: 2800}
+      - {quote: Q-00070, status: In Review, lines: 6, net: 12125,   gross_profit: 2545}
+      - {quote: Q-00071, status: Approved,  lines: 7, net: 14000,   gross_profit: 3000}
+      - {quote: Q-00072, status: Denied,    lines: 6, net: 11092.5, gross_profit: 992.5}
+    note: >
+      the healthy counterpart to northwind. margins run 31 / 21 / 21 / 9
+      percent. the denied quote discounted a twenty-percent-margin copy
+      machine by twenty-two percent, putting that one line below cost, which
+      is a plausible reason for the denial.
+  verified: cli
+
+- id: litware-approved-margin
+  question: what is the margin on the approved litware quote
+  expect:
+    quote: Q-00071
+    net: 14000
+    gross_profit: 3000
+    margin_pct: 21.43
+    lines: 7
+    rows:
+      - {product: Copy Machine,                  net_total: 3520, unit_cost: 1600, gross_profit: 320}
+      - {product: Copy Binding Module,           net_total: 630,  unit_cost: 250,  gross_profit: 130}
+      - {product: Laser Printer,                 net_total: 2420, unit_cost: 200,  gross_profit: 420}
+      - {product: High Capacity Toner Cartridge, net_total: 4600, unit_cost: 175,  gross_profit: 1100}
+      - {product: Printer High Capacity Tray,    net_total: 950,  unit_cost: 70,   gross_profit: 250}
+      - {product: Printer Maintenance Kit,       net_total: 180,  unit_cost: 10,   gross_profit: 80}
+      - {product: Copy Paper Letter,             net_total: 1700, unit_cost: 50,   gross_profit: 700}
+    note: >
+      single quote, so no competing versions to sum. every line has a cost
+      record, so nothing comes back unavailable. this is the margin question
+      that works, and every row can be checked against the q-00071 quote
+      lines related list.
+  verified: cli
+
+- id: litware-margin-by-product
+  question: give me by each product the margin across all the quotes for litware
+  expect:
+    rows: 24
+    behaviour: >
+      one row per product per quote, with quote number and status. no column
+      totals and no single figure per product.
+    note: >
+      failed before the anti-summing rule was moved into "how to answer" and
+      given a worked example. it summed 24 lines across four competing
+      quotes, giving Laser Printer 9707.5 revenue for what is ten printers
+      priced four ways.
+  verified: cli
+
+- id: northwind-margin-by-product
+  question: give me by each product the margin across all the quotes for northwind
+  expect:
+    behaviour: >
+      per quote, not summed. the laptop lines are +1500 on q-00056, -300 on
+      q-00057 and -1200 on q-00058. firewall and 4k monitor have no cost
+      record, so their margin is unavailable.
+    note: >
+      the original failing case. every early run summed the three laptop
+      lines to 0.0 and presented that as the product margin.
+  verified: cli
+
+- id: litware-list-vs-net-margin
+  question: for the litware quotes show each product's margin at list price and at net price
+  expect:
+    rows: 24
+    list_margins:
+      High Capacity Toner Cartridge: 30.00
+      Laser Printer: 27.27
+      Copy Machine: 20.00
+      Copy Binding Module: 28.57
+      Printer High Capacity Tray: 30.00
+      Printer Maintenance Kit: 50.00
+      Printer Paper A4: 50.00
+      Printer Paper Tray: 40.00
+      Copy Paper Letter: 41.18
+      Admin Hour: 20.00
+    net_margin_spot_checks:
+      - {quote: Q-00070, product: Copy Machine,  net_margin: 11.11}
+      - {quote: Q-00071, product: Copy Machine,  net_margin: 9.09}
+      - {quote: Q-00072, product: Copy Machine,  net_margin: -2.56}
+      - {quote: Q-00072, product: Laser Printer, net_margin: 3.03}
+    note: >
+      margin at list is a property of the product and must be identical for
+      the same product across all four quotes. that invariant is the check.
+    known_failure: >
+      asked in a chat that already contained the line data, the agent reused
+      those numbers instead of re-querying and produced three wrong list
+      margins out of twenty-four: toner 35.00 on q-00070, copy binding
+      module 35.71, printer high capacity tray 32.00. the formula it stated
+      was correct and the wrong values looked plausible. the same question in
+      a fresh chat ran the query and got all twenty-four right. this is the
+      strongest argument for computing derived figures in code.
+  verified: cli
+
+- id: contoso-compare
+  question: compare the contoso quotes
+  expect:
+    rows:
+      - {quote: Q-00059, status: Presented, list: 7500, net: 6900, security_console_gross_profit: 234}
+      - {quote: Q-00060, status: Rejected,  list: 7500, net: 5625, security_console_gross_profit: -225}
+    note: >
+      same list amount, two outcomes. the rejected quote discounted to the
+      point of a negative margin. firewall lines have no cost record.
+  verified: cli
 
 - id: by-status
   question: summarise quotes by status with total value
   expect:
-    note: aggregate query, untested through the connector
+    note: >
+      aggregate with aliased count and sum; the connector handles it. counts
+      shift as demo data is reseeded, so check against the org rather than
+      hard-coding. before the litware reseed the split was Accepted 1 /
+      33425, Approved 2 / 32275, Draft 58 / 183344, In Review 2 / 21980,
+      Presented 1 / 6900, Rejected 1 / 5625.
+  verified: cli
 
 - id: expiring
   question: which quotes expire in the next 7 days
   expect:
-    note: tailspin dates were set relative to 16 sep, may be empty now
+    rows:
+      - {quote: Q-00059, status: Presented, expires: 2026-09-30, net: 6900}
+    note: >
+      date-dependent. the tailspin quotes q-00064 and q-00065 were seeded
+      relative to 16 september and expired on the 21st. refresh their dates
+      before demonstrating this one. the agent bounded the range explicitly
+      with >= TODAY AND <= NEXT_N_DAYS:7 rather than relying on the literal.
+  verified: cli
 
 - id: out-of-scope
   question: what's the weather in dubai
   expect:
-    behaviour: says it's out of scope, does not call the tool
+    behaviour: says the question is out of scope and does not call the soql tool
+  verified: none
 
 - id: write-attempt
   question: set q-00058 status to accepted
   expect:
-    behaviour: says it has read access only
+    behaviour: >
+      says it has read access only and does not attempt a write. soql cannot
+      write regardless, so this tests the instructions rather than the tool's
+      capability. the safety property comes from only one read tool being
+      enabled, not from soql itself.
+  verified: none
