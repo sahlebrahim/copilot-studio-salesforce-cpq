@@ -28,15 +28,15 @@ The setup takes about 20 minutes and is mostly the same as any other tutorial. O
 
 CPQ lives in a managed package with the `SBQQ__` prefix, and field names don't match their labels. For example, the field labelled "Opportunity" on a quote is `SBQQ__Opportunity2__c`. It's hard to guess, even for the agent, so it often guesses wrong and writes a query that fails. Hence we have to write the field names down for the agent in the agent instructions.
 
-One mistake I made was putting the field names in the tool's "Description for AI" box, since it describes the tool. However, the agent never got them and spent 4 to 6 tool calls per question trying to get the query right.
+One mistake I made was putting the field names in the tool's "Description for AI" box, since it describes the tool. With the list there, the agent still guessed field names and took 4 to 6 tool calls per question to get the query right.
 
-I asked the agent what fields its instructions listed for the quote line object, and it was unable to answer. It ran a query against Salesforce to find them and answered "according to Salesforce". The only tool description it had seen was Copilot Studio's own, which told it to call GetTables and GetTable, tools this agent doesn't have.
+I asked the agent what fields its instructions listed for the quote line object. At that point the list was only in the tool's description, so if the description had reached the agent, it could have answered from there. Instead, it ran a query against Salesforce to find them and answered "according to Salesforce". It also mentioned GetTables and GetTable, tools this agent doesn't have, which suggests it was working from the connector's default description rather than mine.
 
 ![Asked what fields its instructions list, the agent queries Salesforce instead](images/03-diagnostic-instructions-question.png)
 
 *Asked what its instructions said, it went to Salesforce instead*
 
-The fix was simple: move the field list to the agent's Instructions box. With the field names in front of it, the agent no longer wasted tool calls working out the query. The same question dropped from 4 tool calls to 1.
+The fix was simple: move the field list to the agent's Instructions box. With the field names in front of it, the agent no longer wasted tool calls working out the query. In my tests, the same question dropped from 4 tool calls to 1.
 
 To check your own agent, ask it `what fields are available on the Opportunity object according to your instructions?`, using any object your agent works with. If it runs a query instead of listing them, your field list isn't reaching it.
 
@@ -118,19 +118,19 @@ On the Salesforce side:
 
 If you're testing this in your own trial tenant, like I did, you'll probably hit two walls.
 
-The first was credits. Preview failed with `EnforcementUsageCredits`, because the Copilot Studio trial gave me seats, not credits. The fix was a pay as you go billing plan in the Power Platform admin center, backed by an Azure subscription in the same tenant as the environment.
+The first was credits. Preview failed with `EnforcementUsageCredits`, because my Copilot Studio trial gave me seats, not credits. The fix was a pay as you go billing plan in the Power Platform admin center, backed by an Azure subscription in the same tenant as the environment.
 
 ![EnforcementUsageCredits error in the Copilot Studio preview](images/07-credit-wall-enforcementusagecredits.png)
 
 *The first wall*
 
-The second came right after fixing the first. Creating an agent failed with "User Admin license is disabled", even though I was Global Administrator. Pay as you go had moved authoring rights onto the Copilot Studio authors tenant setting, which was set to None. The fix was to create a Security group (not a Microsoft 365 group), add myself, pick it in that setting, and sign in again in a private window.
+The second came right after fixing the first. Creating an agent failed with "User Admin license is disabled", even though I was Global Administrator. The cause was the Copilot Studio authors tenant setting, which was set to None. It only started blocking me after I set up pay as you go. The fix was to create a Security group (not a Microsoft 365 group), add myself, pick it in that setting, and sign in again in a private window.
 
 ![Copilot Studio authors tenant setting set to None](images/08-copilot-studio-authors-none.png)
 
 *The actual cause of the second wall*
 
-Fixing the first causes the second, so budget an hour for both.
+In my case, fixing the first led straight to the second, so budget an hour for both.
 
 ---
 
@@ -146,4 +146,10 @@ Everything is in the repo: [github.com/sahlebrahim/copilot-studio-salesforce-cpq
 
 ## Is it enough?
 
-This is a simple setup where the instructions do the heavy lifting, but the number 1 rule about agents is that instructions are non binding. The agent is not guaranteed to follow them strictly, and that's why the next step is a code first approach, which can handle edge cases and enforce the rules in code.
+This is a simple setup where the instructions do the heavy lifting, but instructions are guidance, not guarantees. Nothing enforces them, so the agent won't always follow them strictly, and that's why the next step is a code first approach, which can handle edge cases and enforce the rules in code.
+
+---
+
+Built by Sahl Ebrahim at [Fluxvec](https://www.fluxvec.ai).
+
+Salesforce is a trademark of Salesforce, Inc. Microsoft, Copilot Studio, Microsoft Teams and Power Platform are trademarks of the Microsoft group of companies. This project is not affiliated with or endorsed by either.
