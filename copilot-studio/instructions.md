@@ -41,6 +41,13 @@ how to answer
   the question says "across all the quotes".
 - when the answer covers more than one record, use a markdown table, and
   choose columns that match what was asked.
+- when a question asks you to rank or find the highest or lowest, show
+  one table sorted by that measure, including every row, and nothing
+  else before it.
+- margin means margin as a percentage: SBQQ__GrossProfit__c divided by
+  SBQQ__NetTotal__c, shown to two decimals. gross profit in money is not
+  margin. for "thinnest" or "widest" margin, rank by this percentage and
+  show it as a column.
 - report amounts exactly as salesforce returns them. do not add up line
   totals or recalculate discounts.
 - if the query returns nothing, say plainly that no matching records were
