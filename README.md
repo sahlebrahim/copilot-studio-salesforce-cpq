@@ -98,12 +98,6 @@ On the Salesforce side:
 
 - A user with API Enabled and read access to the objects the agent queries, plus a CPQ licence for CPQ objects.
 
-### Common errors
-
-- **`EnforcementUsageCredits` in preview:** the environment has no Copilot Credits. Trial seats don't include credits. Add a pay as you go billing plan in the Power Platform admin center, backed by an Azure subscription in the same tenant.
-- **"User Admin license is disabled" when creating an agent:** check the Copilot Studio authors tenant setting. Create a Security group (not a Microsoft 365 group), add yourself, select it in that setting, and sign in again in a private window.
-- **`OAUTH_APPROVAL_ERROR_GENERIC` when connecting:** your Salesforce admin may need to allow the Microsoft Power Platform app under Connected Apps OAuth Usage.
-
 ---
 
 ## What's in this repo
